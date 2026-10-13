@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>노선별 하차 현황</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1d2330;--muted:#5d6678;--border:#dde1e8;--grid:#e6e9ef;--accent:#2563eb}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b202b;--text:#e8ebf2;--muted:#9aa4b8;--border:#2d3445;--grid:#2a3141;--accent:#6ea0ff}}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;line-height:1.4}
+main{max-width:1200px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:1.3rem;margin:0}
+.sub{color:var(--muted);font-size:.85rem}
+select{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);max-width:100%}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.kpi .l{color:var(--muted);font-size:.8rem}
+.kpi .v{font-size:1.5rem;font-weight:700;margin-top:4px;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wide{grid-column:1/-1}
+h2{font-size:.95rem;margin:0 0 8px}
+.box{position:relative;height:280px}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <div><h1>노선별 하차 현황</h1><div class="sub" id="period"></div></div>
+ <label>노선 <select id="route" aria-label="노선 선택"></select></label>
+</header>
+<section class="kpis">
+ <div class="card kpi"><div class="l">총 하차</div><div class="v" id="k1"></div></div>
+ <div class="card kpi"><div class="l">피크 시간대</div><div class="v" id="k2"></div></div>
+ <div class="card kpi"><div class="l">최다 하차 정류소</div><div class="v" id="k3"></div></div>
+</section>
+<section class="grid">
+ <div class="card wide"><h2>시간대별 하차 추이</h2><div class="box"><canvas id="c1"></canvas></div></div>
+ <div class="card wide"><h2>정류소별 하차</h2><div class="box"><canvas id="c2"></canvas></div></div>
+ <div class="card"><h2>승객유형 비율</h2><div class="box"><canvas id="c3"></canvas></div></div>
+ <div class="card"><h2>요일별 합계</h2><div class="box"><canvas id="c4"></canvas></div></div>
+</section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const DATA = {"types":["일반","청소년","어린이","경로","기타"],"days":["월","화","수","목","금","토","일"],"routes":[{"name":"전체","total":110361,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[4075,3986,9234,12292,7390,3972,3986,4788,4528,4059,4079,3979,8134,11505,8374,3998,4043,3959,3980]},"stops":{"labels":["수락산역","여의도","역삼역","이대입구","이문동","종로3가","청량리","회기역","공덕역","동대문","마포구청","삼성역","서울역","월계역","장위동","공덕역","광화문","당고개","상계동","선릉역","신촌","종로3가","청량리","가산디지털단지","금천구청","노원역","마포구청","여의도","역삼역","장위동","광화문","삼성역","선릉역","이문동","장위동","종로3가","청량리","동대문","삼성역","송파구청","수락산역","시청앞","여의도","이문동","장위동","당고개","동대문","선릉역","신촌","이대입구","장위동","종로3가","회기역","가산디지털단지","강남역","구로디지털단지","금천구청","노원역","서울역","금천구청","삼성역","시청앞","신도림","신촌","종로3가","공덕역","광화문","노원역","월계역","수락산역","신도림","역삼역","잠실역","신촌","영등포","이대입구","가산디지털단지","상계동","구로디지털단지"],"values":[776,962,851,864,927,838,755,849,977,1808,857,1008,953,1030,885,974,1102,982,942,1210,983,1026,1186,1175,1182,967,1007,1107,1340,2488,1311,2287,1392,1182,1110,1307,1248,1197,1254,1506,1494,1630,1273,1167,1299,1851,1393,1336,1430,1218,1657,1651,1350,1432,1773,1785,1350,2950,1439,1536,1565,1481,1742,1913,1474,1472,3394,1596,1765,1539,1750,1753,1772,1746,1711,1742,1497,1795,1835]},"types":[65854,6013,257,7788,30449],"days":[18107,18208,18812,18335,18015,9378,9506]},{"name":"100번","total":14178,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[518,536,1167,1550,946,574,481,585,548,590,505,570,990,1596,1044,537,469,517,455]},"stops":{"labels":["종로3가","서울역","공덕역","장위동","이문동","여의도","동대문","가산디지털단지","삼성역","광화문","잠실역"],"values":[838,953,974,1077,1182,1273,1393,1432,1565,1719,1772]},"types":[8442,778,33,986,3939],"days":[2349,2288,2518,2352,2218,1222,1231]},{"name":"143번","total":16797,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[594,564,1423,2024,1155,622,572,801,707,619,576,603,1299,1704,1113,555,639,646,581]},"stops":{"labels":["청량리","마포구청","당고개","노원역","장위동","동대문","회기역","금천구청","종로3가","광화문","수락산역","신촌","상계동"],"values":[755,857,982,967,1110,1197,1350,1350,1474,1675,1539,1746,1795]},"types":[10016,912,36,1173,4660],"days":[2713,2797,2944,2757,2716,1427,1443]},{"name":"271번","total":12420,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[501,447,928,1487,785,444,490,480,535,414,439,467,884,1270,994,477,431,453,494]},"stops":{"labels":["여의도","월계역","광화문","금천구청","종로3가","수락산역","장위동","강남역","신촌"],"values":[962,1030,1102,1182,1307,1494,1657,1773,1913]},"types":[7433,699,36,914,3338],"days":[2119,2027,2099,2118,2043,968,1046]},{"name":"340번","total":18132,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[686,695,1470,1995,1165,644,647,817,753,632,688,664,1345,1893,1429,683,677,619,630]},"stops":{"labels":["수락산역","장위동","신촌","마포구청","삼성역","이문동","이대입구","노원역","시청앞","공덕역","신도림","영등포","가산디지털단지","구로디지털단지"],"values":[776,885,983,1007,1010,1167,1218,1340,1481,1472,1750,1711,1497,1835]},"types":[10834,972,35,1249,5042],"days":[2869,3009,2991,2995,3116,1556,1596]},{"name":"472번","total":10799,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[409,372,1036,1148,617,341,386,436,453,405,426,326,825,1101,851,382,469,391,425]},"stops":{"labels":["이문동","동대문","선릉역","역삼역","광화문","시청앞","종로3가","구로디지털단지"],"values":[927,945,1210,1340,1311,1630,1651,1785]},"types":[6459,604,28,773,2935],"days":[1819,1831,1809,1813,1700,914,913]},{"name":"501번","total":13165,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[467,516,979,1396,1018,462,500,549,537,493,516,491,1006,1391,1018,457,433,414,522]},"stops":{"labels":["이대입구","공덕역","종로3가","가산디지털단지","삼성역","장위동","신촌","노원역","신도림","월계역"],"values":[864,977,1026,1175,1277,1299,1430,1610,1742,1765]},"types":[7849,713,27,939,3637],"days":[2281,2074,2216,2190,2099,1172,1133]},{"name":"7016번","total":15665,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[556,543,1342,1742,1180,513,586,715,612,566,560,539,1099,1610,1227,566,576,608,525]},"stops":{"labels":["회기역","동대문","상계동","여의도","청량리","삼성역","선릉역","서울역","금천구청","노원역","역삼역","이대입구"],"values":[849,863,942,1107,1248,1254,1336,1439,1536,1596,1753,1742]},"types":[9308,837,40,1109,4371],"days":[2551,2650,2716,2546,2570,1306,1326]},{"name":"9401번","total":9205,"hours":{"labels":["05:00~05:59","06:00~06:59","07:00~07:59","08:00~08:59","09:00~09:59","10:00~10:59","11:00~11:59","12:00~12:59","13:00~13:59","14:00~14:59","15:00~15:59","16:00~16:59","17:00~17:59","18:00~18:59","19:00~19:59","20:00~20:59","21:00~21:59","22:00~22:59","23:00~23:59"],"values":[344,313,889,950,524,372,324,405,383,340,369,319,686,940,698,341,349,311,348]},"stops":{"labels":["역삼역","삼성역","청량리","장위동","선릉역","송파구청","당고개"],"values":[851,1008,1186,1411,1392,1506,1851]},"types":[5513,498,22,645,2527],"days":[1406,1532,1519,1564,1553,813,818]}],"period":"2026-09-01 ~ 2026-09-07"};
+const PAL = ["#3b82f6","#f59e0b","#10b981","#ef4444","#8b5cf6"];
+const fmt = n => n.toLocaleString("ko-KR");
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const sel = document.getElementById("route");
+DATA.routes.forEach((r,i)=>{const o=document.createElement("option");o.value=i;o.textContent=r.name;sel.appendChild(o);});
+document.getElementById("period").textContent = "기간 " + DATA.period;
+let charts = [];
+function argmax(a){return a.indexOf(Math.max.apply(null,a));}
+function render(){
+  charts.forEach(c=>c.destroy()); charts=[];
+  const r = DATA.routes[+sel.value];
+  document.getElementById("k1").textContent = fmt(r.total)+"명";
+  document.getElementById("k2").textContent = r.hours.labels[argmax(r.hours.values)];
+  const si = argmax(r.stops.values);
+  document.getElementById("k3").textContent = r.stops.labels[si]+" ("+fmt(r.stops.values[si])+")";
+  if(typeof Chart==="undefined"){return;}
+  const text=css("--text"), muted=css("--muted"), grid=css("--grid"), card=css("--card"), accent=css("--accent");
+  Chart.defaults.color = muted;
+  Chart.defaults.borderColor = grid;
+  const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:text}}}};
+  const axes = {x:{ticks:{color:muted,maxRotation:60},grid:{color:grid}},y:{beginAtZero:true,ticks:{color:muted},grid:{color:grid}}};
+  const mk=(id,cfg)=>charts.push(new Chart(document.getElementById(id),cfg));
+  mk("c1",{type:"line",data:{labels:r.hours.labels.map(s=>s.slice(0,2)+"시"),datasets:[{label:"하차",data:r.hours.values,borderColor:accent,backgroundColor:accent+"33",fill:true,tension:.3,pointRadius:3}]},options:{...base,plugins:{legend:{display:false}},scales:axes}});
+  mk("c2",{type:"bar",data:{labels:r.stops.labels,datasets:[{label:"하차",data:r.stops.values,backgroundColor:accent}]},options:{...base,plugins:{legend:{display:false}},scales:axes}});
+  mk("c3",{type:"doughnut",data:{labels:DATA.types,datasets:[{data:r.types,backgroundColor:PAL,borderColor:card,borderWidth:2}]},options:{...base,plugins:{legend:{position:"bottom",labels:{color:text}}}}});
+  mk("c4",{type:"bar",data:{labels:DATA.days,datasets:[{label:"하차",data:r.days,backgroundColor:accent}]},options:{...base,plugins:{legend:{display:false}},scales:axes}});
+}
+sel.addEventListener("change",render);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
+render();
+</script>
+</body>
+</html>
